@@ -11,19 +11,28 @@ import requests
 from dotenv import load_dotenv
 load_dotenv()
 
-# create the rekognition client
-rekognition = boto3.client('rekognition', region_name='us-east-1')
-
 # define the S3 bucket name + image
 bucket_name = 'book-scanner-lehigh'
 image_name = 'books6.png'
+
+#--------------------------------------------#
+# AWS Rekognition - Detect Labels for Books
+#--------------------------------------------#
+
+# create the rekognition client
+rekognition = boto3.client('rekognition', region_name='us-east-1')
 
 # call the rekognition client to detect text in the image
 labels_response = rekognition.detect_labels(
     Image={'S3Object': {'Bucket': bucket_name,'Name': image_name}}, MaxLabels=50)
 
-books_collected = []
+# TEST: print detected labels
+print("\nDetected labels in the image:")
+for label in labels_response['Labels']:
+    print(label['Name'], label['Confidence'])
 
+# iterate through the labels to find 'Book' and get bounding boxes
+books_collected = []
 for label in labels_response['Labels']:
     if label['Name'] == 'Book':         # check if label is 'Book'
         for instance in label['Instances']:
@@ -32,6 +41,10 @@ for label in labels_response['Labels']:
 
 print(f"Found {len(books_collected)} books in the image")
 
+
+#--------------------------------------------#
+# AWS Textract - Get Text from Book Spines
+#--------------------------------------------#
 # call the rekognition client to detect text in the image
 text_response = rekognition.detect_text(
     Image={'S3Object': {
@@ -47,10 +60,6 @@ for item in text_response['TextDetections']:
     if item['Type'] == 'LINE':
         print(item['DetectedText'])
 
-# print detected labels
-print("\nDetected labels in the image:")
-for label in labels_response['Labels']:
-    print(label['Name'], label['Confidence'])
 
 
 
