@@ -28,7 +28,7 @@ rekognition = boto3.client('rekognition', region_name='us-east-1')
 
 # call the rekognition client to detect text in the image
 labels_response = rekognition.detect_labels(
-    Image={'S3Object': {'Bucket': bucket_name,'Name': image_name}}, MaxLabels=50)
+    Image={'S3Object': {'Bucket': bucket_name,'Name': image_name}}, MaxLabels=100)
 
 # TEST: print detected labels
 print("\nDetected labels in the image:")
@@ -71,8 +71,6 @@ for i, box in enumerate(books_collected):
     
     # TEMP: save cropped images locally for testing
     cropped_img.save(f'cropped_book_{i}.png')
-
-
 
 
 
