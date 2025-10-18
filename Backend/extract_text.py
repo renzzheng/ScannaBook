@@ -6,14 +6,18 @@ import json
 import re
 # from aws_utils import textract_client, rekognition_client, s3_client
 from PIL import Image
+from io import BytesIO
 import requests
 
 from dotenv import load_dotenv
 load_dotenv()
 
-# define the S3 bucket name + image
+# defininitions
+s3 = boto3.client('s3')
 bucket_name = 'book-scanner-lehigh'
 image_name = 'books6.png'
+
+textract = boto3.client('textract', region_name='us-east-1')
 
 #--------------------------------------------#
 # AWS Rekognition - Detect Labels for Books
@@ -43,8 +47,39 @@ print(f"Found {len(books_collected)} books in the image")
 
 
 #--------------------------------------------#
+# PILLOW - Crop Book Spines from Image
+#--------------------------------------------#
+
+# TEMP: download S3 bookself into memory
+bookshelf = s3.get_object(Bucket=bucket_name, Key=image_name)
+img = Image.open(BytesIO(bookshelf['Body'].read())) # full bookshelf image in memory rn
+
+# crop each book spine using bounding boxes from Rekognition
+cropped_books = []
+
+# iterate through bounding boxes and crop the image
+for i, box in enumerate(books_collected):
+    img_width, img_height = img.size
+    left = int(box['Left'] * img_width)
+    top = int(box['Top'] * img_height)
+    width = int(box['Width'] * img_width)
+    height = int(box['Height'] * img_height)
+    
+    # crop the book spine
+    cropped_img = img.crop((left, top, left + width, top + height))
+    cropped_books.append(cropped_img)
+    
+    # TEMP: save cropped images locally for testing
+    cropped_img.save(f'cropped_book_{i}.png')
+
+
+
+
+
+#--------------------------------------------#
 # AWS Textract - Get Text from Book Spines
 #--------------------------------------------#
+
 # call the rekognition client to detect text in the image
 text_response = rekognition.detect_text(
     Image={'S3Object': {
