@@ -16,18 +16,36 @@ rekognition = boto3.client('rekognition', region_name='us-east-1')
 
 # define the S3 bucket name + image
 bucket_name = 'book-scanner-lehigh'
-image_name = 'books.png'
+image_name = 'books6.png'
 
 # call the rekognition client to detect text in the image
-response = rekognition.detect_labels(
-    Image={'S3Object': {'Bucket': bucket_name, 'Name': image_name}}, 
-    MaxLabels=50)
+text_response = rekognition.detect_text(
+    Image={'S3Object': {
+            'Bucket': bucket_name,
+            'Name': image_name
+        }
+    }
+)
 
-# print the detected text
+# call the rekognition client to detect text in the image
+labels_response = rekognition.detect_labels(
+    Image={'S3Object': {
+        'Bucket': bucket_name,
+        'Name': image_name}
+    }, 
+MaxLabels=50)
+
+# print detected text
 print("Detected text in the image:")
-for item in response['TextDetections']:
+for item in text_response['TextDetections']:
     if item['Type'] == 'LINE':
         print(item['DetectedText'])
+
+# print detected labels
+print("\nDetected labels in the image:")
+for label in labels_response['Labels']:
+    print(label['Name'], label['Confidence'])
+
 
 
 # app = Flask(__name__)
