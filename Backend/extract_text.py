@@ -15,9 +15,10 @@ load_dotenv()
 # defininitions
 s3 = boto3.client('s3')
 bucket_name = 'book-scanner-lehigh'
-image_name = 'books6.png'
+image_name = 'bookshelves/books6.png'
 
 textract = boto3.client('textract', region_name='us-east-1')
+
 
 #--------------------------------------------#
 # AWS Rekognition - Detect Labels for Books
@@ -69,9 +70,19 @@ for i, box in enumerate(books_collected):
     cropped_img = img.crop((left, top, left + width, top + height))
     cropped_books.append(cropped_img)
     
-    # TEMP: save cropped images locally for testing
-    cropped_img.save(f'cropped_book_{i}.png')
+    # # TEMP: save cropped images locally for testing
+    # cropped_img.save(f'cropped_book_{i}.png')
 
+# upload cropped book spines back to S3
+for i, cropped in enumerate(cropped_books):
+    buffer = BytesIO()
+    cropped_img.save(buffer, 'PNG') # better for text clarity
+    buffer.seek(0)
+    
+    # store into S3
+    Key = f'cropped_books/book_{i}.png'  # goes into s3://book-scanner-lehigh/cropped_books/
+    s3.put_object(Bucket=bucket_name, Key = f'cropped_books/book_{i}.png', Body=buffer, ContentType='image/png')
+    print(f"Uploaded {Key} to S3 Bucket")
 
 
 #--------------------------------------------#
