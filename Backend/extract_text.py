@@ -4,7 +4,7 @@ import re
 import os
 import json
 import re
-from aws_utils import textract_client, rekognition_client, s3_client
+# from aws_utils import textract_client, rekognition_client, s3_client
 from PIL import Image
 import requests
 
@@ -12,32 +12,48 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # create the rekognition client
-#rekognition = boto3.client('rekognition', region='us-east-1')
+rekognition = boto3.client('rekognition', region='us-east-1')
 
 # define the S3 bucket name + image
+bucket_name = 'book-scanner-lehigh'
+image_name = 'books.png'
+
+# call the rekognition client to detect text in the image
+response = rekognition.detect_text(
+    Image={
+        'S3Object': {
+            'Bucket': bucket_name,
+            'Name': image_name
+        }
+    }
+)
+
+# print the detected text
+print("Detected text in the image:")
+for item in response['TextDetections']:
+    if item['Type'] == 'LINE':
+        print(item['DetectedText'])
 
 
+# app = Flask(__name__)
+# s3 = boto3.client('s3')
+# rekog = boto3.client('rekognition')
+# textract = boto3.client('textract')
 
+# BUCKET = 'booksnap-images'
 
-app = Flask(__name__)
-s3 = boto3.client('s3')
-rekog = boto3.client('rekognition')
-textract = boto3.client('textract')
+# @app.route('/upload', methods=['POST'])
+# def upload():
+#     file = request.files['image']
+#     s3.upload_fileobj(file, BUCKET, file.filename)
 
-BUCKET = 'booksnap-images'
+#     # Step 1: Detect text
+#     textract_resp = textract.detect_document_text(
+#         Document={'S3Object': {'Bucket': BUCKET, 'Name': file.filename}}
+#     )
+#     lines = [b['Text'] for b in textract_resp['Blocks'] if b['BlockType'] == 'LINE']
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    file = request.files['image']
-    s3.upload_fileobj(file, BUCKET, file.filename)
+#     # Step 2: Filter potential titles
+#     titles = [line for line in lines if 2 <= len(line.split()) <= 6]
 
-    # Step 1: Detect text
-    textract_resp = textract.detect_document_text(
-        Document={'S3Object': {'Bucket': BUCKET, 'Name': file.filename}}
-    )
-    lines = [b['Text'] for b in textract_resp['Blocks'] if b['BlockType'] == 'LINE']
-
-    # Step 2: Filter potential titles
-    titles = [line for line in lines if 2 <= len(line.split()) <= 6]
-
-    return jsonify({'titles': titles})
+#     return jsonify({'titles': titles})
