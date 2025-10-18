@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # create the rekognition client
-rekognition = boto3.client('rekognition', region='us-east-1')
+#rekognition = boto3.client('rekognition', region='us-east-1')
 
 # define the S3 bucket name + image
 
