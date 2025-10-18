@@ -1,6 +1,23 @@
 from flask import Flask, request, jsonify
 import boto3
 import re
+import os
+import json
+import re
+from aws_utils import textract_client, rekognition_client, s3_client
+from PIL import Image
+import requests
+
+from dotenv import load_dotenv
+load_dotenv()
+
+# create the rekognition client
+rekognition = boto3.client('rekognition', region='us-east-1')
+
+# define the S3 bucket name + image
+
+
+
 
 app = Flask(__name__)
 s3 = boto3.client('s3')
