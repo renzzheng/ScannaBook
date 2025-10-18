@@ -4,10 +4,9 @@ import React from "react";
 // EXAMPLE NAV BAR 
 
 const navItems = [
-  { name: "Home", href: "/" },
-  { name: "About", href: "/about" },
-  { name: "Services", href: "/services" },
-  { name: "Contact", href: "/contact" },
+  { name: "BookScanner", href: "/" }, //main page for uploads and search
+  { name: "Bookshelf", href: "/bookshelf" },
+  { name: "History" , href: "/History"}
 ];
 
 export default function Navbar() {
