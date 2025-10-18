@@ -12,21 +12,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # create the rekognition client
-rekognition = boto3.client('rekognition', region='us-east-1')
+rekognition = boto3.client('rekognition', region_name='us-east-1')
 
 # define the S3 bucket name + image
 bucket_name = 'book-scanner-lehigh'
 image_name = 'books.png'
 
 # call the rekognition client to detect text in the image
-response = rekognition.detect_text(
-    Image={
-        'S3Object': {
-            'Bucket': bucket_name,
-            'Name': image_name
-        }
-    }
-)
+response = rekognition.detect_labels(
+    Image={'S3Object': {'Bucket': bucket_name, 'Name': image_name}}, 
+    MaxLabels=50)
 
 # print the detected text
 print("Detected text in the image:")
