@@ -19,6 +19,20 @@ bucket_name = 'book-scanner-lehigh'
 image_name = 'books6.png'
 
 # call the rekognition client to detect text in the image
+labels_response = rekognition.detect_labels(
+    Image={'S3Object': {'Bucket': bucket_name,'Name': image_name}}, MaxLabels=50)
+
+books_collected = []
+
+for label in labels_response['Labels']:
+    if label['Name'] == 'Book':         # check if label is 'Book'
+        for instance in label['Instances']:
+            box = instance['BoundingBox']
+            books_collected.append(box)
+
+print(f"Found {len(books_collected)} books in the image")
+
+# call the rekognition client to detect text in the image
 text_response = rekognition.detect_text(
     Image={'S3Object': {
             'Bucket': bucket_name,
@@ -26,14 +40,6 @@ text_response = rekognition.detect_text(
         }
     }
 )
-
-# call the rekognition client to detect text in the image
-labels_response = rekognition.detect_labels(
-    Image={'S3Object': {
-        'Bucket': bucket_name,
-        'Name': image_name}
-    }, 
-MaxLabels=50)
 
 # print detected text
 print("Detected text in the image:")
