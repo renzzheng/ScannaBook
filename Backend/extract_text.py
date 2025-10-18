@@ -5,7 +5,7 @@ import os
 import json
 import re
 # from aws_utils import textract_client, rekognition_client, s3_client
-from PIL import Image
+from PIL import Image, ImageDraw
 from io import BytesIO
 import requests
 
@@ -15,10 +15,7 @@ load_dotenv()
 # defininitions
 s3 = boto3.client('s3')
 bucket_name = 'book-scanner-lehigh'
-image_name = 'bookshelves/books6.png'
-
-textract = boto3.client('textract', region_name='us-east-1')
-
+image_name = 'bookshelves/books7.png'
 
 #--------------------------------------------#
 # AWS Rekognition - Detect Labels for Books
@@ -30,11 +27,6 @@ rekognition = boto3.client('rekognition', region_name='us-east-1')
 # call the rekognition client to detect text in the image
 labels_response = rekognition.detect_labels(
     Image={'S3Object': {'Bucket': bucket_name,'Name': image_name}}, MaxLabels=100)
-
-# TEST: print detected labels
-print("\nDetected labels in the image:")
-for label in labels_response['Labels']:
-    print(label['Name'], label['Confidence'])
 
 # iterate through the labels to find 'Book' and get bounding boxes
 books_collected = []
@@ -76,7 +68,7 @@ for i, box in enumerate(books_collected):
 # upload cropped book spines back to S3
 for i, cropped in enumerate(cropped_books):
     buffer = BytesIO()
-    cropped_img.save(buffer, 'PNG') # better for text clarity
+    cropped.save(buffer, 'PNG') # better for text clarity
     buffer.seek(0)
     
     # store into S3
@@ -86,23 +78,49 @@ for i, cropped in enumerate(cropped_books):
 
 
 #--------------------------------------------#
-# AWS Textract - Get Text from Book Spines
+# AWS Rekognition - Get Text from Individual Book Spines
 #--------------------------------------------#
 
-# call the rekognition client to detect text in the image
-text_response = rekognition.detect_text(
-    Image={'S3Object': {
-            'Bucket': bucket_name,
-            'Name': image_name
-        }
-    }
-)
+book_texts = { }
+for i in range(len(cropped_books)):
+    book_key = f'cropped_books/book_{i}.png'
+    text_response = rekognition.detect_text(
+    Image={'S3Object': {'Bucket': bucket_name,'Name': book_key}}
+    )
 
-# print detected text
-print("Detected text in the image:")
-for item in text_response['TextDetections']:
-    if item['Type'] == 'LINE':
-        print(item['DetectedText'])
+    print(f"\nText for book {i}: ")
+    detected_texts = []
+    for item in text_response['TextDetections']:
+        if item['Type'] == 'LINE':
+            detected_texts.append(item['DetectedText'])
+            print(item['DetectedText'])
+
+
+#--------------------------------------------#
+# Clean and Prepare Titles for Google Books API
+#--------------------------------------------#
+
+
+
+#--------------------------------------------#
+# Google Books API - Search for Book Info
+#--------------------------------------------#
+def query_google_books(title: str):
+    url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}"
+    res = requests.get(url)
+    if res.status_code == 200:
+        data = res.json()
+        if "items" in data:
+            info = data["items"][0]["volumeInfo"]
+            return {
+                "title": info.get("title"),
+                "authors": info.get("authors"),
+                "averageRating": info.get("averageRating"),
+                "ratingsCount": info.get("ratingsCount"),
+                "description": info.get("description"),
+                "thumbnail": info.get("imageLinks", {}).get("thumbnail")
+            }
+    return None
 
 
 
