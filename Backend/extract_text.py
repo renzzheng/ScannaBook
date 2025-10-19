@@ -1,11 +1,10 @@
-from flask import Flask, request, jsonify
+# from flask import Flask, request, jsonify
 import boto3
 import re
 import os
 import json
 import re
-# from aws_utils import textract_client, rekognition_client, s3_client
-from PIL import Image
+from PIL import Image, ImageDraw
 from io import BytesIO
 import requests
 
@@ -15,117 +14,167 @@ load_dotenv()
 # defininitions
 s3 = boto3.client('s3')
 bucket_name = 'book-scanner-lehigh'
-image_name = 'bookshelves/books6.png'
-
-textract = boto3.client('textract', region_name='us-east-1')
-
-
-#--------------------------------------------#
-# AWS Rekognition - Detect Labels for Books
-#--------------------------------------------#
+image_name = 'bookshelves/books7.png'
 
 # create the rekognition client
 rekognition = boto3.client('rekognition', region_name='us-east-1')
 
-# call the rekognition client to detect text in the image
-labels_response = rekognition.detect_labels(
-    Image={'S3Object': {'Bucket': bucket_name,'Name': image_name}}, MaxLabels=100)
+#--------------------------------------------#
+# AWS Rekognition - Detect Labels for Books
+#--------------------------------------------#
+def detect_books(image_name):
+    # call the rekognition client to detect text in the image
+    labels_response = rekognition.detect_labels(
+        Image={'S3Object': {'Bucket': bucket_name,'Name': image_name}}, MaxLabels=100)
 
-# TEST: print detected labels
-print("\nDetected labels in the image:")
-for label in labels_response['Labels']:
-    print(label['Name'], label['Confidence'])
+    # iterate through the labels to find 'Book' and get bounding boxes
+    books_collected = []
+    for label in labels_response['Labels']:
+        if label['Name'] == 'Book':         # check if label is 'Book'
+            for instance in label['Instances']:
+                box = instance['BoundingBox']
+                books_collected.append(box)
 
-# iterate through the labels to find 'Book' and get bounding boxes
-books_collected = []
-for label in labels_response['Labels']:
-    if label['Name'] == 'Book':         # check if label is 'Book'
-        for instance in label['Instances']:
-            box = instance['BoundingBox']
-            books_collected.append(box)
+    print(f"Found {len(books_collected)} books in the image")
+    return books_collected
 
-print(f"Found {len(books_collected)} books in the image")
-
+books_collected = detect_books(image_name)
 
 #--------------------------------------------#
 # PILLOW - Crop Book Spines from Image
 #--------------------------------------------#
+def crop_books(books_collected):
+    # TEMP: download S3 bookself into memory
+    bookshelf = s3.get_object(Bucket=bucket_name, Key=image_name)
+    img = Image.open(BytesIO(bookshelf['Body'].read())) # full bookshelf image in memory rn
 
-# TEMP: download S3 bookself into memory
-bookshelf = s3.get_object(Bucket=bucket_name, Key=image_name)
-img = Image.open(BytesIO(bookshelf['Body'].read())) # full bookshelf image in memory rn
+    # crop each book spine using bounding boxes from Rekognition
+    cropped_books = []
 
-# crop each book spine using bounding boxes from Rekognition
-cropped_books = []
+    # iterate through bounding boxes and crop the image
+    for i, box in enumerate(books_collected):
+        img_width, img_height = img.size
+        left = int(box['Left'] * img_width)
+        top = int(box['Top'] * img_height)
+        width = int(box['Width'] * img_width)
+        height = int(box['Height'] * img_height)
+        
+        # crop the book spine
+        cropped_img = img.crop((left, top, left + width, top + height))
+        cropped_books.append(cropped_img)
+        
+        # # TEMP: save cropped images locally for testing
+        # cropped_img.save(f'cropped_book_{i}.png')
 
-# iterate through bounding boxes and crop the image
-for i, box in enumerate(books_collected):
-    img_width, img_height = img.size
-    left = int(box['Left'] * img_width)
-    top = int(box['Top'] * img_height)
-    width = int(box['Width'] * img_width)
-    height = int(box['Height'] * img_height)
+    # upload cropped book spines back to S3
+    for i, cropped in enumerate(cropped_books):
+        buffer = BytesIO()
+        cropped.save(buffer, 'PNG') # better for text clarity
+        buffer.seek(0)
+        
+        # store into S3
+        Key = f'cropped_books/book_{i}.png'  # goes into s3://book-scanner-lehigh/cropped_books/
+        s3.put_object(Bucket=bucket_name, Key = f'cropped_books/book_{i}.png', Body=buffer, ContentType='image/png')
+        print(f"Uploaded {Key} to S3 Bucket")
     
-    # crop the book spine
-    cropped_img = img.crop((left, top, left + width, top + height))
-    cropped_books.append(cropped_img)
-    
-    # # TEMP: save cropped images locally for testing
-    # cropped_img.save(f'cropped_book_{i}.png')
+    return cropped_books
 
-# upload cropped book spines back to S3
-for i, cropped in enumerate(cropped_books):
-    buffer = BytesIO()
-    cropped_img.save(buffer, 'PNG') # better for text clarity
-    buffer.seek(0)
-    
-    # store into S3
-    Key = f'cropped_books/book_{i}.png'  # goes into s3://book-scanner-lehigh/cropped_books/
-    s3.put_object(Bucket=bucket_name, Key = f'cropped_books/book_{i}.png', Body=buffer, ContentType='image/png')
-    print(f"Uploaded {Key} to S3 Bucket")
+cropped_books = crop_books(books_collected)
 
 
 #--------------------------------------------#
-# AWS Textract - Get Text from Book Spines
+# AWS Rekognition - Get Text from Individual Book Spines
+#--------------------------------------------#
+def get_text_from_books(cropped_books):
+    book_texts = {}
+    for i in range(len(cropped_books)):
+        book_key = f'cropped_books/book_{i}.png'
+        text_response = rekognition.detect_text(
+        Image={'S3Object': {'Bucket': bucket_name,'Name': book_key}}
+        )
+
+        print(f"\nText for book {i}: ")
+        detected_texts = []
+        for item in text_response['TextDetections']:
+            if item['Type'] == 'LINE':
+                detected_texts.append(item['DetectedText'])
+                print(item['DetectedText'])
+        book_texts[book_key] = detected_texts
+    return book_texts
+
+book_texts = get_text_from_books(cropped_books)
+
+
+#--------------------------------------------#
+# Clean and Prepare Titles for Google Books API
 #--------------------------------------------#
 
-# call the rekognition client to detect text in the image
-text_response = rekognition.detect_text(
-    Image={'S3Object': {
-            'Bucket': bucket_name,
-            'Name': image_name
-        }
+
+
+
+#--------------------------------------------#
+# Google Books API - Search for Book Info
+#--------------------------------------------#
+def query_google_books(title: str):
+    url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}"
+    res = requests.get(url)
+    if res.status_code == 200:
+        data = res.json()
+        if "items" in data:
+            info = data["items"][0]["volumeInfo"]
+            return {
+                "title": info.get("title"),
+                "authors": info.get("authors"),
+                "averageRating": info.get("averageRating"),
+                "ratingsCount": info.get("ratingsCount"),
+                "description": info.get("description"),
+                "thumbnail": info.get("imageLinks", {}).get("thumbnail")
+            }
+    return None
+
+# list to hold book infos
+book_infos = []
+
+for book_key, texts in book_texts.items():
+    if texts:
+        title_query = texts[0]  # assume first detected line is the title
+        book_info = query_google_books(title_query)
+        book_infos.append((book_key, book_info))
+
+for book_key, info in book_infos:
+    print(f"\nBook Key: {book_key}")
+    print(f"Book Info: {info}")
+
+    
+
+
+#--------------------------------------------#
+# Lambda Handler for Iniital Image Upload
+#--------------------------------------------#
+def lambda_handler(event, context):
+    # extract image info from event
+    bucket = event['Records'][0]['s3']['bucket']['name']
+    image_key = event['Records'][0]['s3']['object']['key']
+    
+    # detect books in the image
+    books_collected = detect_books(image_key)
+    
+    # crop book spines
+    cropped_books = crop_books(books_collected)
+    
+    # get text from cropped book spines
+    book_texts = get_text_from_books(cropped_books)
+    
+    # prepare titles and query Google Books API
+    book_infos = {}
+    for book_key, texts in book_texts.items():
+        if texts:
+            title = texts[0]  # assume first detected line is the title
+            clean_title = re.sub(r'[^a-zA-Z0-9\s]', '', title)  # basic cleaning
+            book_info = query_google_books(clean_title)
+            book_infos[book_key] = book_info
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps(book_infos)
     }
-)
-
-# print detected text
-print("Detected text in the image:")
-for item in text_response['TextDetections']:
-    if item['Type'] == 'LINE':
-        print(item['DetectedText'])
-
-
-
-
-# app = Flask(__name__)
-# s3 = boto3.client('s3')
-# rekog = boto3.client('rekognition')
-# textract = boto3.client('textract')
-
-# BUCKET = 'booksnap-images'
-
-# @app.route('/upload', methods=['POST'])
-# def upload():
-#     file = request.files['image']
-#     s3.upload_fileobj(file, BUCKET, file.filename)
-
-#     # Step 1: Detect text
-#     textract_resp = textract.detect_document_text(
-#         Document={'S3Object': {'Bucket': BUCKET, 'Name': file.filename}}
-#     )
-#     lines = [b['Text'] for b in textract_resp['Blocks'] if b['BlockType'] == 'LINE']
-
-#     # Step 2: Filter potential titles
-#     titles = [line for line in lines if 2 <= len(line.split()) <= 6]
-
-#     return jsonify({'titles': titles})
