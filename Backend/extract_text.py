@@ -1,18 +1,15 @@
-from flask import Flask, request, jsonify
+# from flask import Flask, request, jsonify
 import boto3
 import re
 import os
 import json
 import re
-# from aws_utils import textract_client, rekognition_client, s3_client
 from PIL import Image, ImageDraw
 from io import BytesIO
 import requests
 
 from dotenv import load_dotenv
 load_dotenv()
-
-app = Flask(__name__)
 
 # defininitions
 s3 = boto3.client('s3')
@@ -88,7 +85,6 @@ cropped_books = crop_books(books_collected)
 #--------------------------------------------#
 # AWS Rekognition - Get Text from Individual Book Spines
 #--------------------------------------------#
-
 def get_text_from_books(cropped_books):
     book_texts = {}
     for i in range(len(cropped_books)):
@@ -136,28 +132,49 @@ def query_google_books(title: str):
             }
     return None
 
+# list to hold book infos
+book_infos = []
+
+for book_key, texts in book_texts.items():
+    if texts:
+        title_query = texts[0]  # assume first detected line is the title
+        book_info = query_google_books(title_query)
+        book_infos.append((book_key, book_info))
+
+for book_key, info in book_infos:
+    print(f"\nBook Key: {book_key}")
+    print(f"Book Info: {info}")
+
+    
 
 
-
-# app = Flask(__name__)
-# s3 = boto3.client('s3')
-# rekog = boto3.client('rekognition')
-# textract = boto3.client('textract')
-
-# BUCKET = 'booksnap-images'
-
-# @app.route('/upload', methods=['POST'])
-# def upload():
-#     file = request.files['image']
-#     s3.upload_fileobj(file, BUCKET, file.filename)
-
-#     # Step 1: Detect text
-#     textract_resp = textract.detect_document_text(
-#         Document={'S3Object': {'Bucket': BUCKET, 'Name': file.filename}}
-#     )
-#     lines = [b['Text'] for b in textract_resp['Blocks'] if b['BlockType'] == 'LINE']
-
-#     # Step 2: Filter potential titles
-#     titles = [line for line in lines if 2 <= len(line.split()) <= 6]
-
-#     return jsonify({'titles': titles})
+#--------------------------------------------#
+# Lambda Handler for Iniital Image Upload
+#--------------------------------------------#
+def lambda_handler(event, context):
+    # extract image info from event
+    bucket = event['Records'][0]['s3']['bucket']['name']
+    image_key = event['Records'][0]['s3']['object']['key']
+    
+    # detect books in the image
+    books_collected = detect_books(image_key)
+    
+    # crop book spines
+    cropped_books = crop_books(books_collected)
+    
+    # get text from cropped book spines
+    book_texts = get_text_from_books(cropped_books)
+    
+    # prepare titles and query Google Books API
+    book_infos = {}
+    for book_key, texts in book_texts.items():
+        if texts:
+            title = texts[0]  # assume first detected line is the title
+            clean_title = re.sub(r'[^a-zA-Z0-9\s]', '', title)  # basic cleaning
+            book_info = query_google_books(clean_title)
+            book_infos[book_key] = book_info
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps(book_infos)
+    }
