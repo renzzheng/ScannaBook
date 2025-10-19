@@ -19,6 +19,9 @@ image_name = 'bookshelves/books7.png'
 # create the rekognition client
 rekognition = boto3.client('rekognition', region_name='us-east-1')
 
+# creates bedrock client
+bedrock = boto3.client(service_name="bedrock-runtime", region_name="us-east-1")
+
 #--------------------------------------------#
 # AWS Rekognition - Detect Labels for Books
 #--------------------------------------------#
