@@ -153,15 +153,20 @@ def clean_with_gemini(clean_titles):
 
     for book_key, title_text in clean_titles.items():
         prompt = f"""
-        Clean the following book title text by removing gibberish.
-        Extract the book's correct title and author.
-        Return ONLY a JSON object with 'title' and 'author'.
+        You are a book title cleaner.
+
+        Given a noisy OCR text of a book cover, your task is to:
+        1. Identify the real book title and author.
+        2. Output only valid JSON with keys "title" and "author".
+        3. If the author is J.K. Rowling or another famous author, include the correct spelling.
+        4. Do not echo my instructions, just output JSON.
 
         Example:
-        Input: 'ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S'
-        Output: {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
+        Input: ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S
+        Output:
+        {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
 
-        Now do the same for this input: "{title_text}"
+        Now clean this text: "{title_text}"
         """
 
         sort_response = client.models.generate_content(
@@ -171,26 +176,27 @@ def clean_with_gemini(clean_titles):
 
         output_text = sort_response.candidates[0].content.parts[0].text.strip()
 
+        # remove code fences if Gemini includes them
+        output_text = re.sub(r"^```(?:json)?|```$", "", output_text.strip(), flags=re.MULTILINE).strip()
         # Print the raw output from Gemini
         print(f"\n--- Gemini raw output for {book_key} ---")
         print(output_text)
         print("--- end raw output ---\n")
 
-        # # Extract JSON safely
-        # match = re.search(r'\{.*\}', output_text)
-        # if match:
-        #     try:
-        #         cleaned[book_key] = json.loads(match.group())
-        #     except json.JSONDecodeError:
-        #         cleaned[book_key] = {"title": None, "author": None}
-        # else:
-        #     cleaned[book_key] = {"title": None, "author": None}
-
-        ## TODO: 
-        # Extract JSON safely ?
-        # we want the tile and author only
-        
-    return output_text
+        #TODO
+        try:
+            book_info = json.loads(output_text)
+            cleaned[book_key] = {
+                "title": book_info.get("title", "").strip(),
+                "author": book_info.get("author", "").strip()
+            }
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON for book {book_key}. Output was: {output_text}")
+            cleaned[book_key] = {
+                "title": title_text,
+                "author": ""
+            }
+    return cleaned
 
 
 #--------------------------------------------#
