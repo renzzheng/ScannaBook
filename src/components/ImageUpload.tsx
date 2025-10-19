@@ -48,7 +48,7 @@ export default function ImageUpload({ className }: ImageUploadProps) {
   };
 
   return (
-    <div className={`flex flex-col items-center gap-4 mt-6 p-6 bg-slate-900 rounded-xl shadow-lg ${className}`}>
+    <div className={`flex flex-col items-center gap-4 mt-6 p-2 bg-slate-900 rounded-xl shadow-lg ${className}`}>
       {/* Hidden file input */}
       <input
         type="file"
