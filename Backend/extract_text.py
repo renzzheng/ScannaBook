@@ -11,6 +11,7 @@ import requests
 import openai
 import base64
 import uuid
+from google import genai
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -34,10 +35,12 @@ rekognition = boto3.client('rekognition', region_name='us-east-1')
 # creates bedrock client
 bedrock = boto3.client(service_name="bedrock-runtime", region_name="us-east-1")
 
-
+# API keys
 GOOGLE_KEY = os.getenv('GOOGLEBOOKS_API_KEY')
 AWS_BEARER_TOKEN_BEDROCK = os.getenv('AWS_BEARER_TOKEN_BEDROCK')
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 #--------------------------------------------#
 # AWS Rekognition - Detect Labels for Books
@@ -138,39 +141,47 @@ def clean_title(book_texts):
     return cleaned_titles
 
 #--------------------------------------------#
-# Sort Book Text using OPENAI
+# Sort Book Text using GEMINI AI
 #--------------------------------------------#
-# def clean_with_openai(clean_titles):
-#     cleaned = {}
+def clean_with_gemini(clean_titles):
+    cleaned = {}
 
-#     for book_key, title_text in clean_titles.items():
-#         prompt = f"""
-#         Clean the following book title text by removing gibberish.
-#         Extract the book's correct title and author.
-#         Return ONLY a JSON object with 'title' and 'author'.
+    # create client with API key
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY not found in environment variables")
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
-#         Example:
-#         Input: 'ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S'
-#         Output: {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
+    for book_key, title_text in clean_titles.items():
+        prompt = f"""
+        Clean the following book title text by removing gibberish.
+        Extract the book's correct title and author.
+        Return ONLY a JSON object with 'title' and 'author'.
 
-#         Now do the same for this input: "{title_text}"
-#         """
-#         print(openai._response)
-#         # use the client object
-#         # response = openai._response.create(
-#         #     model="gpt-oss-20b",
-#         #     messages=[{"role": "user", "content": prompt}],
-#         #     max_tokens=150
-#         # )
+        Example:
+        Input: 'ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S'
+        Output: {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
 
-#         # output_text = response.choices[0].message.content.strip()
+        Now do the same for this input: "{title_text}"
+        """
 
-#         # try:
-#         #     cleaned[book_key] = json.loads(output_text)
-#         # except json.JSONDecodeError:
-#         #     cleaned[book_key] = {"title": None, "author": None}
+        sort_response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
 
-#     return cleaned
+        output_text = sort_response.candidates[0].content.parts[0].text.strip()
+
+        # Extract JSON safely
+        match = re.search(r'\{.*\}', output_text)
+        if match:
+            try:
+                cleaned[book_key] = json.loads(match.group())
+            except json.JSONDecodeError:
+                cleaned[book_key] = {"title": None, "author": None}
+        else:
+            cleaned[book_key] = {"title": None, "author": None}
+
+    return cleaned
 
 
 #--------------------------------------------#
@@ -250,9 +261,9 @@ def query_google_books(title: str, author: str = None):
 def upload_file():
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
-    
     file = request.files["file"]
-    # Generate a unique S3 key
+    
+    # generate unique S3 key
     key = f'bookshelves/{uuid.uuid4()}_{file.filename}'
     
     # upload original image to S3
@@ -263,14 +274,19 @@ def upload_file():
     cropped_books = crop_books(bucket_name, key, books_collected)
     book_texts = get_text_from_books(bucket_name, cropped_books)
     clean_titles_dict = clean_title(book_texts)
+    cleaned = clean_with_gemini(clean_titles_dict)
     
     all_books = []
-    for k, title in clean_titles_dict.items():
-        if title.strip():
-            info = query_google_books(title)
+    for k, book_data in cleaned.items():  # book_data is a dict with 'title' and 'author'
+        title = book_data.get("title") or "" 
+        author = book_data.get("author") or None
+
+        if title.strip():  # now safe
+            info = query_google_books(title, author)
             all_books.append({
                 "id": k,
                 "title": title,
+                "author": author,
                 "authors": info.get("authors") if info else [],
                 "rating": info.get("averageRating") if info else None,
                 "description": info.get("description") if info else "No description available",
