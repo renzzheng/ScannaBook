@@ -21,12 +21,8 @@ export default function ResultBox({ books }: ResultBoxProps) {
   const [displayedBooks, setDisplayedBooks] = useState<BookData[]>([]);
   const [sortMethod, setSortMethod] = useState<SortMethod>('rating');
 
-  // A single useEffect now handles the sorting logic.
-  // It runs only when the original book list changes or the sort method changes.
   useEffect(() => {
-    // Make a mutable copy to avoid sorting the original prop array
     const booksToSort = [...(books || [])];
-
     booksToSort.sort((a, b) => {
       switch (sortMethod) {
         case 'title':
@@ -39,16 +35,21 @@ export default function ResultBox({ books }: ResultBoxProps) {
           return 0;
       }
     });
-
     setDisplayedBooks(booksToSort);
   }, [books, sortMethod]);
 
   return (
-    <div className="relative mt-8 w-full max-w-5xl rounded-2xl p-6 bg-transparent ">
-      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 text-white shadow-md">
-        {/* Book filter goes here */}
+    <div className="relative mt-8 w-full max-w-5xl rounded-2xl p-6 bg-transparent">
+      <div
+        className="
+          bg-white/10 backdrop-blur-md rounded-2xl p-6 text-white shadow-md
+          border border-white/20
+        "
+      >
+        {/* Book filter */}
         <BookFilter activeMethod={sortMethod} onSort={setSortMethod} />
         <h2 className="text-2xl font-semibold mb-4">Search Results</h2>
+
         {displayedBooks.length === 0 ? (
           <p className="text-center text-gray-400">No books to display.</p>
         ) : (

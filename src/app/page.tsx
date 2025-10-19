@@ -1,48 +1,58 @@
+'use client';
+
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import HeroSection from "../components/HeroSection";
-import BookCard from "../components/card"
 import ResultBox from "../components/result";
 
 export default function Home() {
-  // Example array of book cover image URLs
-  const bookCovers = [
-    "/covers/book1.jpg",
-    "/covers/book2.jpg",
-    "/covers/book3.jpg",
-    "/covers/book4.jpg",
-  ];
+  const [offsetY, setOffsetY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Smooth performance using requestAnimationFrame
+      requestAnimationFrame(() => setOffsetY(window.scrollY));
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <div className="relative min-h-screen font-sans">
-      {/* Background image */}
-      <div className="blur-[2px] absolute inset-0 bg-[url('/bookshelf-bg.png')] bg-cover bg-center"></div>
+    <div className="relative min-h-screen font-sans overflow-x-hidden">
+      {/* 🌄 Background with smooth parallax */}
+      <div
+        className="absolute inset-0 bg-[url('/bookshelf-bg.png')] bg-cover bg-center will-change-transform"
+        style={{
+          transform: `translateY(${offsetY * 0.3}px)`, // 0.3 = subtle parallax speed
+          filter: 'blur(2.5px)', // custom blur
+        }}
+      ></div>
 
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-black/30"></div>
 
       {/* Page content */}
       <div className="relative z-10 grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 text-white">
-
-        {/* Main section */}
         <main className="flex flex-col gap-[32px] row-start-2 items-center text-center">
-          
           <HeroSection />
-      
-          <ResultBox books={[
-            {
-              title: "Dune",
-              author: "Frank Herbert",
-              rating: 4.8,
-              description: "Epic science fiction novel.",
-              thumbnail: "/covers/dune.jpg",
-            },
-            {
-              title: "1984",
-              author: "George Orwell",
-              rating: 4.6,
-              description: "Dystopian classic.",
-              thumbnail: "/covers/1984.jpg",
-            },
+
+          <ResultBox
+            books={[
+              {
+                title: "Dune",
+                author: "Frank Herbert",
+                rating: 4.8,
+                description: "Epic science fiction novel.",
+                thumbnail: "/covers/dune.jpg",
+              },
+              {
+                title: "1984",
+                author: "George Orwell",
+                rating: 4.6,
+                description: "Dystopian classic.",
+                thumbnail: "/covers/1984.jpg",
+              },
+              
             ]}
           />
 
