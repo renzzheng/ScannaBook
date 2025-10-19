@@ -17,7 +17,7 @@ export default function BookCard({
   thumbnail,
 }: BookCardProps) {
   return (
-    <div className="relative mt-8 w-full max-w-sm rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md p-6 text-white shadow-md hover:bg-white/15 transition flex gap-4">
+    <div className="relative mt-8 w-full max-w-xl rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md p-6 text-white shadow-md hover:bg-white/15 transition flex gap-4">
   {/* Thumbnail on the left */}
   {thumbnail && (
     <div className="flex-shrink-0 overflow-hidden rounded-xl">
