@@ -1,5 +1,6 @@
 'use client';
 import React, { useRef, useState, useEffect } from "react";
+import { Camera, ArrowRight } from 'lucide-react';
 
 interface ImageUploadProps {
   className?: string;
@@ -38,7 +39,6 @@ export default function ImageUpload({ className }: ImageUploadProps) {
     if (!file) return;
     console.log("Uploading file:", file);
     alert(`Uploading ${file.name}`);
-    // TODO: replace with backend upload
     setFile(null);
   };
 
@@ -48,7 +48,9 @@ export default function ImageUpload({ className }: ImageUploadProps) {
   };
 
   return (
-    <div className={`flex flex-col items-center gap-4 mt-6 p-2 bg-slate-900 rounded-xl shadow-lg ${className}`}>
+    <div
+      className={`flex flex-col items-center gap-4 mt-6 p-[10px] bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-md ${className}`}
+    >
       {/* Hidden file input */}
       <input
         type="file"
@@ -62,9 +64,17 @@ export default function ImageUpload({ className }: ImageUploadProps) {
       {!file ? (
         <button
           onClick={handleChooseFile}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors font-medium"
+          className="
+            relative rounded-full px-6 py-2 text-white font-sans text-base
+            border bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30
+            backdrop-blur-md shadow-md
+            hover:bg-white/20 transition-colors duration-200
+          "
         >
-          Upload Image
+<div className="flex justify-center items-center">
+  <Camera size={25} strokeWidth={1.25} className="text-white/70" />
+</div>          
+Upload Image
         </button>
       ) : (
         <div className="flex flex-col items-center gap-4">
@@ -73,24 +83,34 @@ export default function ImageUpload({ className }: ImageUploadProps) {
             <img
               src={previewUrl}
               alt="Preview"
-              className="w-48 h-auto rounded-md border border-gray-400"
+              className="w-48 h-auto rounded-md border border-white/20"
             />
           )}
 
           {/* File name */}
-          <p className="text-gray-200 text-sm">Selected file: {file.name}</p>
+          <p className="text-gray-200 text-sm text-center">
+            Selected file: {file.name}
+          </p>
 
           {/* Confirm / Cancel buttons */}
           <div className="flex gap-4">
             <button
               onClick={handleConfirm}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md transition-colors font-medium"
+              className="
+                relative rounded-full px-6 py-2 text-white font-sans text-base
+                border border-white/20 bg-white/10 backdrop-blur-md shadow-md
+                hover:bg-white/20 transition-colors duration-200
+              "
             >
-              Upload
+              Confirm Upload
             </button>
             <button
               onClick={handleCancel}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md transition-colors font-medium"
+              className="
+                relative rounded-full px-6 py-2 text-white font-sans text-base
+                border border-white/20 bg-white/10 backdrop-blur-md shadow-md
+                hover:bg-white/20 transition-colors duration-200
+              "
             >
               Cancel
             </button>
