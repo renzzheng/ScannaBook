@@ -7,7 +7,7 @@ export default function HeroSection() {
       <div className="container mx-auto flex flex-col items-center justify-center py-15 px-4 text-center">
 
         {/* Main Headline */}
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-400 mb-4">
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-blue-400 mb-4">
           Welcome to Scannabook
         </h1>
 
