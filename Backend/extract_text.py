@@ -1,3 +1,5 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import boto3
 import re
 import os
@@ -8,9 +10,13 @@ from io import BytesIO
 import requests
 import openai
 import base64
+import uuid
 
 from dotenv import load_dotenv
 load_dotenv()
+
+app = Flask(__name__)
+CORS(app)
 
 # remove proxy environment variables that might interfere with OpenAI client
 if "http_proxy" in os.environ:
@@ -134,37 +140,37 @@ def clean_title(book_texts):
 #--------------------------------------------#
 # Sort Book Text using OPENAI
 #--------------------------------------------#
-def clean_with_openai(clean_titles):
-    cleaned = {}
+# def clean_with_openai(clean_titles):
+#     cleaned = {}
 
-    for book_key, title_text in clean_titles.items():
-        prompt = f"""
-        Clean the following book title text by removing gibberish.
-        Extract the book's correct title and author.
-        Return ONLY a JSON object with 'title' and 'author'.
+#     for book_key, title_text in clean_titles.items():
+#         prompt = f"""
+#         Clean the following book title text by removing gibberish.
+#         Extract the book's correct title and author.
+#         Return ONLY a JSON object with 'title' and 'author'.
 
-        Example:
-        Input: 'ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S'
-        Output: {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
+#         Example:
+#         Input: 'ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S'
+#         Output: {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
 
-        Now do the same for this input: "{title_text}"
-        """
-        print(openai._response)
-        # use the client object
-        # response = openai._response.create(
-        #     model="gpt-oss-20b",
-        #     messages=[{"role": "user", "content": prompt}],
-        #     max_tokens=150
-        # )
+#         Now do the same for this input: "{title_text}"
+#         """
+#         print(openai._response)
+#         # use the client object
+#         # response = openai._response.create(
+#         #     model="gpt-oss-20b",
+#         #     messages=[{"role": "user", "content": prompt}],
+#         #     max_tokens=150
+#         # )
 
-        # output_text = response.choices[0].message.content.strip()
+#         # output_text = response.choices[0].message.content.strip()
 
-        # try:
-        #     cleaned[book_key] = json.loads(output_text)
-        # except json.JSONDecodeError:
-        #     cleaned[book_key] = {"title": None, "author": None}
+#         # try:
+#         #     cleaned[book_key] = json.loads(output_text)
+#         # except json.JSONDecodeError:
+#         #     cleaned[book_key] = {"title": None, "author": None}
 
-    return cleaned
+#     return cleaned
 
 
 #--------------------------------------------#
@@ -195,50 +201,98 @@ def query_google_books(title: str, author: str = None):
 #--------------------------------------------#
 # Lambda Handler for Iniital Image Upload
 #--------------------------------------------#
-def lambda_handler(event, context):
-    print("Event:", json.dumps(event))
+# def lambda_handler(event, context):
+#     print("Event:", json.dumps(event))
+#     all_books = []
+
+#     for record in event['Records']:
+#         bucket_name = record['s3']['bucket']['name']
+#         image_name = record['s3']['object']['key']
+
+#         # detect & process books
+#         books_collected = detect_books(bucket_name, image_name)
+#         cropped_books = crop_books(bucket_name, image_name, books_collected)
+#         book_texts = get_text_from_books(bucket_name, cropped_books)
+#         clean_titles = clean_title(book_texts)
+
+#         for key, title in clean_titles.items():
+#             if title.strip():
+#                 info = query_google_books(title)
+
+#                 # gracefully extract info
+#                 book_entry = {
+#                     "id": key,
+#                     "title": title,
+#                     "authors": info.get("authors", []),
+#                     "rating": info.get("averageRating", None),
+#                     "description": info.get("description", "No description available"),
+#                     "thumbnail": info.get("thumbnail", None)
+#                 }
+
+#                 all_books.append(book_entry)
+
+#     # final JSON output
+#     response = {
+#         "message": "Bookshelf processed successfully!",
+#         "books": all_books
+#     }
+
+#     print("Response:", json.dumps(response, indent=2))
+#     return {
+#         "statusCode": 200,
+#         "body": json.dumps(response)
+#     }
+
+# -----------------------------
+# Flask endpoint for file upload
+# -----------------------------
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files["file"]
+    # Generate a unique S3 key
+    key = f'bookshelves/{uuid.uuid4()}_{file.filename}'
+    
+    # upload original image to S3
+    s3.upload_fileobj(file, bucket_name, key)
+    
+    # process the uploaded image
+    books_collected = detect_books(bucket_name, key)
+    cropped_books = crop_books(bucket_name, key, books_collected)
+    book_texts = get_text_from_books(bucket_name, cropped_books)
+    clean_titles_dict = clean_title(book_texts)
+    
     all_books = []
+    for k, title in clean_titles_dict.items():
+        if title.strip():
+            info = query_google_books(title)
+            all_books.append({
+                "id": k,
+                "title": title,
+                "authors": info.get("authors") if info else [],
+                "rating": info.get("averageRating") if info else None,
+                "description": info.get("description") if info else "No description available",
+                "thumbnail": info.get("thumbnail") if info else None
+            })
 
-    for record in event['Records']:
-        bucket_name = record['s3']['bucket']['name']
-        image_name = record['s3']['object']['key']
-
-        # detect & process books
-        books_collected = detect_books(bucket_name, image_name)
-        cropped_books = crop_books(bucket_name, image_name, books_collected)
-        book_texts = get_text_from_books(bucket_name, cropped_books)
-        clean_titles = clean_title(book_texts)
-
-        for key, title in clean_titles.items():
-            if title.strip():
-                info = query_google_books(title)
-
-                # gracefully extract info
-                book_entry = {
-                    "id": key,
-                    "title": title,
-                    "authors": info.get("authors", []),
-                    "rating": info.get("averageRating", None),
-                    "description": info.get("description", "No description available"),
-                    "thumbnail": info.get("thumbnail", None)
-                }
-
-                all_books.append(book_entry)
-
-    # final JSON output
+    # pretty-print like for pedro
     response = {
         "message": "Bookshelf processed successfully!",
         "books": all_books
     }
-
     print("Response:", json.dumps(response, indent=2))
-    return {
-        "statusCode": 200,
-        "body": json.dumps(response)
-    }
+
+    return jsonify(response), 200
+
 
 if __name__ == "__main__":
-    import json
-    with open("event.json") as f:
-        event = json.load(f)
-    print(lambda_handler(event, None))
+    # import json
+    # with open("event.json") as f:
+    #     event = json.load(f)
+    # print(lambda_handler(event, None))
+
+    app.run(debug=True)
+
+
