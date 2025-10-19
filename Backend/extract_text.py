@@ -11,6 +11,11 @@ import openai
 from dotenv import load_dotenv
 load_dotenv()
 
+# remove proxy environment variables that might interfere with OpenAI client
+if "http_proxy" in os.environ:
+    del os.environ["http_proxy"]
+if "https_proxy" in os.environ:
+    del os.environ["https_proxy"]
 
 # defininitions
 s3 = boto3.client('s3')
@@ -22,9 +27,10 @@ rekognition = boto3.client('rekognition', region_name='us-east-1')
 # creates bedrock client
 bedrock = boto3.client(service_name="bedrock-runtime", region_name="us-east-1")
 
+
 GOOGLE_KEY = os.getenv('GOOGLEBOOKS_API_KEY')
 AWS_BEARER_TOKEN_BEDROCK = os.getenv('AWS_BEARER_TOKEN_BEDROCK')
-OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 #--------------------------------------------#
 # AWS Rekognition - Detect Labels for Books
@@ -198,19 +204,20 @@ def clean_with_openai(clean_titles):
 
         Now do the same for this input: "{title_text}"
         """
+        print(openai._response)
+        # use the client object
+        # response = openai._response.create(
+        #     model="gpt-oss-20b",
+        #     messages=[{"role": "user", "content": prompt}],
+        #     max_tokens=150
+        # )
 
-        response = openai.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=150,
-        )
+        # output_text = response.choices[0].message.content.strip()
 
-        output_text = response.choices[0].message.content.strip()
-
-        try:
-            cleaned[book_key] = json.loads(output_text)
-        except json.JSONDecodeError:
-            cleaned[book_key] = {"title": None, "author": None}
+        # try:
+        #     cleaned[book_key] = json.loads(output_text)
+        # except json.JSONDecodeError:
+        #     cleaned[book_key] = {"title": None, "author": None}
 
     return cleaned
 
@@ -244,61 +251,53 @@ def query_google_books(title: str, author: str = None):
 #--------------------------------------------#
 # Main Processing Loop (Cleaning + Querying Books)
 #--------------------------------------------#
-# list to hold book info
+# list to hold book infos
 book_infos = {}
 
-for book_key, raw_title in clean_titles.items():
-    if raw_title.strip():
-        # pass a dict with one book
-        cleaned = clean_with_bedrock({book_key: raw_title})
-        title = cleaned[book_key]["title"]
-        author = cleaned[book_key]["author"]
-
-        info = query_google_books(title, author)
+for book_key, title in clean_titles.items():
+    if title.strip():  # skip empty titles
+        info = query_google_books(title)
         book_infos[book_key] = info
-
         print(f"\nBook: {book_key}")
         print(f"Query Title: {title}")
-        print(f"Author: {author}")
         if info:
             print("Google Books Result:")
             print(f"Title: {info['title']}")
             print(f"Authors: {info['authors']}")
             print(f"Rating: {info.get('averageRating')}")
             print(f"Description: {info.get('description')}")
-            print(f"Thumbnail: {info.get('thumbnail')}")
         else:
             print("No results found.")
-
-
 
 
 #--------------------------------------------#
 # Lambda Handler for Iniital Image Upload
 #--------------------------------------------#
 def lambda_handler(event, context):
-    # extract image info from event
     bucket = event['Records'][0]['s3']['bucket']['name']
     image_key = event['Records'][0]['s3']['object']['key']
-    
-    # detect books in the image
-    books_collected = detect_books(image_key)
-    
-    # crop book spines
-    cropped_books = crop_books(books_collected)
-    
-    # get text from cropped book spines
-    book_texts = get_text_from_books(cropped_books)
-    
-    # prepare titles and query Google Books API
+
+    # Detect and crop books
+    books_collected = detect_books(bucket, image_key)
+    cropped_books = crop_books(bucket, image_key, books_collected)
+
+    # Extract text
+    book_texts = get_text_from_books(bucket, cropped_books)
+    clean_titles_dict = clean_title(book_texts)
+
+    # Clean with OpenAI
+    # cleaned_books = clean_with_openai(clean_titles_dict)
+
+    # Query Google Books
     book_infos = {}
-    for book_key, texts in book_texts.items():
-        if texts:
-            title = texts[0]  # assume first detected line is the title
-            clean_title = re.sub(r'[^a-zA-Z0-9\s]', '', title)  # basic cleaning
-            book_info = query_google_books(clean_title)
-            book_infos[book_key] = book_info
-    
+    for book_key, book_data in clean_titles_dict.items():
+        title = book_data["title"]
+        author = book_data["author"]
+        if title:
+            book_infos[book_key] = query_google_books(title, author)
+        else:
+            book_infos[book_key] = None
+
     return {
         'statusCode': 200,
         'body': json.dumps(book_infos)
