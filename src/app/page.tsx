@@ -25,14 +25,7 @@ export default function Home() {
 
         {/* Main section */}
         <main className="flex flex-col gap-[32px] row-start-2 items-center text-center">
-          <Image
-            src="/ascii-art-text2c.png"
-            alt="BookScanner logo"
-            width={1000}
-            height={1}
-            className="h-45 w-300 blur-[100]"
-            priority
-          />
+          
           <HeroSection />
       
           <ResultBox books={[
