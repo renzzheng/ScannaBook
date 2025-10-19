@@ -5,7 +5,7 @@ import BookCard from "./card";
 import { SortMethod } from "./Filter";
 import BookFilter from "./Filter";
 
-interface BookData {
+export interface BookData {
   title?: string;
   rating?: number;
   author?: string;
@@ -41,7 +41,7 @@ export default function ResultBox({ books }: ResultBoxProps) {
   return (
     <div className="relative mt-8 w-full max-w-5xl rounded-2xl p-6 bg-transparent ">
       <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 text-white shadow-md border border-white/20">
-        <BookFilter activeMethod={sortMethod} onSort={setSortMethod} />
+        <BookFilter activeMethod={sortMethod} onSort={setSortMethod} onSuccess={setDisplayedBooks} />
         <h2 className="text-2xl font-semibold mb-4">Search Results</h2>
 
         {displayedBooks.length === 0 ? (

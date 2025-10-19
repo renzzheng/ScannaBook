@@ -21,15 +21,14 @@ export default function Home() {
     <div className="relative min-h-screen font-sans overflow-x-hidden">
       {/* 🌄 Background with smooth parallax */}
       <div
-        className="absolute inset-0 bg-[url('/bookshelf-bg.png')] bg-cover bg-center will-change-transform"
+        className="absolute inset-0 blur-[2.5px] bg-[url('/bookshelf-bg.png')] bg-cover bg-center will-change-transform"
         style={{
           transform: `translateY(${offsetY * 0.3}px)`, // 0.3 = subtle parallax speed
-          filter: 'blur(2.5px)', // custom blur
         }}
       ></div>
 
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/30"></div>
+      <div className="fixed inset-0 bg-black/30"></div>
 
       {/* Page content */}
       <div className="relative z-10 grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 text-white">
@@ -52,7 +51,7 @@ export default function Home() {
                 description: "Dystopian classic.",
                 thumbnail: "/covers/1984.jpg",
               },
-              
+
             ]}
           />
 
