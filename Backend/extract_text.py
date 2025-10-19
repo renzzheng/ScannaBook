@@ -121,42 +121,59 @@ def clean_title(book_texts):
     for book_key, title in cleaned_titles.items():
         print(f"{book_key}: {title}")
 
-clean_title(book_texts)
+    return cleaned_titles
+clean_titles = clean_title(book_texts)
 
 
 #--------------------------------------------#
 # Google Books API - Search for Book Info
 #--------------------------------------------#
-# def query_google_books(title: str):
-#     url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}"
-#     res = requests.get(url)
-#     if res.status_code == 200:
-#         data = res.json()
-#         if "items" in data:
-#             info = data["items"][0]["volumeInfo"]
-#             return {
-#                 "title": info.get("title"),
-#                 "authors": info.get("authors"),
-#                 "averageRating": info.get("averageRating"),
-#                 "ratingsCount": info.get("ratingsCount"),
-#                 "description": info.get("description"),
-#                 "thumbnail": info.get("imageLinks", {}).get("thumbnail")
-#             }
-#     return None
+def query_google_books(title: str):
+    url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}"
+    res = requests.get(url)
+    if res.status_code == 200:
+        data = res.json()
+        if "items" in data:
+            info = data["items"][0]["volumeInfo"]
+            return {
+                "title": info.get("title"),
+                "authors": info.get("authors"),
+                "averageRating": info.get("averageRating"),
+                "ratingsCount": info.get("ratingsCount"),
+                "description": info.get("description"),
+                "thumbnail": info.get("imageLinks", {}).get("thumbnail")
+            }
+    return None
 
-# # list to hold book infos
-# book_infos = []
 
-# for book_key, texts in book_texts.items():
-#     if texts:
-#         title_query = texts[0]  # assume first detected line is the title
-#         book_info = query_google_books(title_query)
-#         book_infos.append((book_key, book_info))
+# list to hold book infos
+book_infos = {}
 
-# for book_key, info in book_infos:
-#     print(f"\nBook Key: {book_key}")
-#     print(f"Book Info: {info}")
+for book_key, title in clean_titles.items():
+    if title.strip():  # skip empty titles
+        info = query_google_books(title)
+        book_infos[book_key] = info
+        print(f"\nBook: {book_key}")
+        print(f"Query Title: {title}")
+        if info:
+            print("Google Books Result:")
+            print(f"Title: {info['title']}")
+            print(f"Authors: {info['authors']}")
+            print(f"Rating: {info.get('averageRating')}")
+            print(f"Description: {info.get('description')}")
+        else:
+            print("No results found.")
 
+#for book_key, texts in book_texts.items():
+#    if texts:
+#        title_query = texts[0]  # assume first detected line is the title
+#        book_info = query_google_books(title_query)
+#        book_infos.append((book_key, book_info))
+
+#for book_key, info in book_infos:
+#    print(f"\nBook Key: {book_key}")
+#    print(f"Book Info: {info}")
+#
 
 
 
