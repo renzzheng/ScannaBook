@@ -1,6 +1,6 @@
 'use client';
 import React, { useRef, useState, useEffect } from "react";
-import { Camera, ArrowRight } from 'lucide-react';
+import { Camera } from "lucide-react"
 
 interface ImageUploadProps {
   className?: string;
@@ -52,6 +52,7 @@ export default function ImageUpload({ className }: ImageUploadProps) {
       className={`flex flex-col items-center gap-4 mt-6 p-[10px] bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-md ${className}`}
     >
       {/* Hidden file input */}
+
       <input
         type="file"
         accept="image/*"
@@ -65,16 +66,16 @@ export default function ImageUpload({ className }: ImageUploadProps) {
         <button
           onClick={handleChooseFile}
           className="
-            relative rounded-full px-6 py-2 text-white font-sans text-base
-            border bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30
-            backdrop-blur-md shadow-md
-            hover:bg-white/20 transition-colors duration-200
+          relative rounded-full px-6 py-2 text-white font-sans text-base
+          border bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30
+          backdrop-blur-md shadow-md
+          hover:bg-white/20 transition-colors duration-200
           "
         >
-<div className="flex justify-center items-center">
-  <Camera size={25} strokeWidth={1.25} className="text-white/70" />
-</div>          
-Upload Image
+          <div className="flex justify-center items-center">
+            <Camera size={25} strokeWidth={1.25} className="text-white/70" />
+          </div>
+          Upload Image
         </button>
       ) : (
         <div className="flex flex-col items-center gap-4">
@@ -100,7 +101,7 @@ Upload Image
                 relative rounded-full px-6 py-2 text-white font-sans text-base
                 border border-white/20 bg-white/10 backdrop-blur-md shadow-md
                 hover:bg-white/20 transition-colors duration-200
-              "
+                "
             >
               Confirm Upload
             </button>
@@ -110,7 +111,7 @@ Upload Image
                 relative rounded-full px-6 py-2 text-white font-sans text-base
                 border border-white/20 bg-white/10 backdrop-blur-md shadow-md
                 hover:bg-white/20 transition-colors duration-200
-              "
+                "
             >
               Cancel
             </button>
