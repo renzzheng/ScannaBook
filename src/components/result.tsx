@@ -39,21 +39,15 @@ export default function ResultBox({ books }: ResultBoxProps) {
   }, [books, sortMethod]);
 
   return (
-    <div className="relative mt-8 w-full max-w-5xl rounded-2xl p-6 bg-transparent">
-      <div
-        className="
-          bg-white/10 backdrop-blur-md rounded-2xl p-6 text-white shadow-md
-          border border-white/20
-        "
-      >
-        {/* Book filter */}
+    <div className="relative mt-8 w-full max-w-5xl rounded-2xl p-6 bg-transparent ">
+      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 text-white shadow-md border border-white/20">
         <BookFilter activeMethod={sortMethod} onSort={setSortMethod} />
         <h2 className="text-2xl font-semibold mb-4">Search Results</h2>
 
         {displayedBooks.length === 0 ? (
           <p className="text-center text-gray-400">No books to display.</p>
         ) : (
-          <div className="flex justify-center gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 place-items-center">
             {displayedBooks.map((book, index) => (
               <BookCard
                 key={index}

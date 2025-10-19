@@ -31,10 +31,23 @@ export default function ImageUpload({ className }: ImageUploadProps) {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const handleConfirm = () => {
+  // Confirm upload
+  const handleConfirm = async () => {
     if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
     console.log("Uploading file:", file);
     alert(`Uploading ${file.name}`);
+    try {
+      const response = await fetch('http://127.0.0.1:5000/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      console.log('Upload response:', data);
+    } catch (e) {
+      console.error("Upload failed:", e);
+    }
     setFile(null);
   };
 
@@ -92,31 +105,31 @@ export default function ImageUpload({ className }: ImageUploadProps) {
 
           {/* Confirm / Cancel buttons */}
           <div className="flex gap-4">
-  <button
-    onClick={handleConfirm}
-    className="
+            <button
+              onClick={handleConfirm}
+              className="
       rounded-full px-6 py-2 text-white font-sans text-base
       border bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30
       backdrop-blur-md shadow-md
       hover:bg-white/20 transition-colors duration-200
     "
-  >
-    Confirm Upload
-  </button>
+            >
+              Confirm Upload
+            </button>
 
-{/* cancel button */}
-  <button
-    onClick={handleCancel}
-    className="
+            {/* cancel button */}
+            <button
+              onClick={handleCancel}
+              className="
       rounded-full px-6 py-2 text-white font-sans text-base
       border bg-red-500/20 hover:bg-red-500/30 border border-red-400/30
       backdrop-blur-md shadow-md
       hover:bg-white/20 transition-colors duration-200
     "
-  >
-    Cancel
-  </button>
-  </div>
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>
