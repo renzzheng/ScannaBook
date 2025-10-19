@@ -171,17 +171,26 @@ def clean_with_gemini(clean_titles):
 
         output_text = sort_response.candidates[0].content.parts[0].text.strip()
 
-        # Extract JSON safely
-        match = re.search(r'\{.*\}', output_text)
-        if match:
-            try:
-                cleaned[book_key] = json.loads(match.group())
-            except json.JSONDecodeError:
-                cleaned[book_key] = {"title": None, "author": None}
-        else:
-            cleaned[book_key] = {"title": None, "author": None}
+        # Print the raw output from Gemini
+        print(f"\n--- Gemini raw output for {book_key} ---")
+        print(output_text)
+        print("--- end raw output ---\n")
 
-    return cleaned
+        # # Extract JSON safely
+        # match = re.search(r'\{.*\}', output_text)
+        # if match:
+        #     try:
+        #         cleaned[book_key] = json.loads(match.group())
+        #     except json.JSONDecodeError:
+        #         cleaned[book_key] = {"title": None, "author": None}
+        # else:
+        #     cleaned[book_key] = {"title": None, "author": None}
+
+        ## TODO: 
+        # Extract JSON safely ?
+        # we want the tile and author only
+        
+    return output_text
 
 
 #--------------------------------------------#
@@ -209,51 +218,6 @@ def query_google_books(title: str, author: str = None):
     return None
 
 
-#--------------------------------------------#
-# Lambda Handler for Iniital Image Upload
-#--------------------------------------------#
-# def lambda_handler(event, context):
-#     print("Event:", json.dumps(event))
-#     all_books = []
-
-#     for record in event['Records']:
-#         bucket_name = record['s3']['bucket']['name']
-#         image_name = record['s3']['object']['key']
-
-#         # detect & process books
-#         books_collected = detect_books(bucket_name, image_name)
-#         cropped_books = crop_books(bucket_name, image_name, books_collected)
-#         book_texts = get_text_from_books(bucket_name, cropped_books)
-#         clean_titles = clean_title(book_texts)
-
-#         for key, title in clean_titles.items():
-#             if title.strip():
-#                 info = query_google_books(title)
-
-#                 # gracefully extract info
-#                 book_entry = {
-#                     "id": key,
-#                     "title": title,
-#                     "authors": info.get("authors", []),
-#                     "rating": info.get("averageRating", None),
-#                     "description": info.get("description", "No description available"),
-#                     "thumbnail": info.get("thumbnail", None)
-#                 }
-
-#                 all_books.append(book_entry)
-
-#     # final JSON output
-#     response = {
-#         "message": "Bookshelf processed successfully!",
-#         "books": all_books
-#     }
-
-#     print("Response:", json.dumps(response, indent=2))
-#     return {
-#         "statusCode": 200,
-#         "body": json.dumps(response)
-#     }
-
 # -----------------------------
 # Flask endpoint for file upload
 # -----------------------------
@@ -278,6 +242,7 @@ def upload_file():
     
     all_books = []
     for k, book_data in cleaned.items():  # book_data is a dict with 'title' and 'author'
+        print("DEBUG:", k, book_data)   # <--- add this
         title = book_data.get("title") or "" 
         author = book_data.get("author") or None
 
@@ -298,8 +263,11 @@ def upload_file():
         "message": "Bookshelf processed successfully!",
         "books": all_books
     }
-    print("Response:", json.dumps(response, indent=2))
 
+    # save to JSON file locally
+    with open("bookshelf_response.json", "w", encoding="utf-8") as f:
+        json.dump(response, f, indent=2, ensure_ascii=False)
+    
     return jsonify(response), 200
 
 
