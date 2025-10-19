@@ -7,6 +7,7 @@ from PIL import Image
 from io import BytesIO
 import requests
 import openai
+import base64
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -189,27 +190,6 @@ def query_google_books(title: str, author: str = None):
                 "thumbnail": info.get("imageLinks", {}).get("thumbnail")
             }
     return None
-
-# #--------------------------------------------#
-# # Main Processing Loop (Cleaning + Querying Books)
-# #--------------------------------------------#
-# # list to hold book infos
-# book_infos = {}
-
-# for book_key, title in clean_titles.items():
-#     if title.strip():  # skip empty titles
-#         info = query_google_books(title)
-#         book_infos[book_key] = info
-#         print(f"\nBook: {book_key}")
-#         print(f"Query Title: {title}")
-#         if info:
-#             print("Google Books Result:")
-#             print(f"Title: {info['title']}")
-#             print(f"Authors: {info['authors']}")
-#             print(f"Rating: {info.get('averageRating')}")
-#             print(f"Description: {info.get('description')}")
-#         else:
-#             print("No results found.")
 
 
 #--------------------------------------------#
