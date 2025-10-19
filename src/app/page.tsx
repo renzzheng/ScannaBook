@@ -1,5 +1,5 @@
 import Image from "next/image";
-import ImageUpload from "../components/ImageUpload";
+import HeroSection from "../components/HeroSection";
 
 export default function Home() {
   return (
@@ -22,12 +22,10 @@ export default function Home() {
             className="h-20 w-auto"
             priority
           />
+          <HeroSection />
           <p className="font-Roboto text-xl text-center">
             Welcome to your personal digital librarian.
           </p>
-          <div className="w-full flex justify-center mt-6">
-            <ImageUpload />
-          </div>
         </main>
 
         <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
