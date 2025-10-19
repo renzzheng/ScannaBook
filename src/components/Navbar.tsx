@@ -1,31 +1,36 @@
 'use client';
 import React from "react";
 
-// EXAMPLE NAV BAR 
-
 const navItems = [
-  { name: "BookScanner", href: "/" }, //main page for uploads and search
+  { name: "BookScanner", href: "/" }, // main page for uploads and search
   { name: "Bookshelf", href: "/bookshelf" },
-  { name: "History" , href: "/History"}
+  { name: "History", href: "/history" }
 ];
 
 export default function Navbar() {
   return (
-    <nav className="
-      sticky top-0 z-5 flex w-full items-center 
-      justify-start gap-x-8 p-4 bg-transparent
-      backdrop-blur-sm rounded-2xl">
-
+    <nav
+      className="
+        absolute top-0 left-0 z-20 w-full
+        flex justify-center gap-x-6 p-6
+        bg-transparent text-white 
+      "
+    >
       {navItems.map((item) => (
         <a
           key={item.name}
           href={item.href}
-          className="text-white hover:text-red-400 px-3 py-2 max-w-sm bg-slate-900 rounded-md text-sm font-medium transition-colors"
+          className="
+            px-5 py-2 rounded-full
+            bg-white/10 hover:bg-white/20
+            backdrop-blur-md
+            text-sm font-medium
+            transition-colors duration-200
+          "
         >
           {item.name}
         </a>
       ))}
-
     </nav>
   );
 }
