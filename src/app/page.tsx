@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen font-sans">
       {/* Background image */}
-      <div className="absolute inset-0 bg-[url('/bookshelf-bg.png')] bg-cover bg-center"></div>
+      <div className="blur-[2px] absolute inset-0 bg-[url('/bookshelf-bg.png')] bg-cover bg-center"></div>
 
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-black/60"></div>
@@ -14,16 +14,16 @@ export default function Home() {
       <div className="relative z-10 grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 text-white">
         <main className="flex flex-col gap-[32px] row-start-2 items-center text-center">
           <Image
-            src="/ascii-art-text2.png"
-            //src="/ascii-art-text.png"
+            //src="/ascii-art-text2.png"
+            src="/ascii-art-text.png"
             alt="BookScanner logo"
             width={1000}
             height={1}
             className="h-20 w-auto"
             priority
           />
-          <p className="font-mono text-sm text-center">
-            This is the greatest project of 2025 Lehigh Valley Hack-a-thon. Welcome.
+          <p className="font-Roboto text-xl text-center">
+            Welcome to your personal digital librarian.
           </p>
           <div className="w-full flex justify-center mt-6">
             <ImageUpload />
