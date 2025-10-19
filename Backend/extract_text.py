@@ -1,4 +1,3 @@
-# from flask import Flask, request, jsonify
 import boto3
 import re
 import os
@@ -7,20 +6,25 @@ import re
 from PIL import Image, ImageDraw
 from io import BytesIO
 import requests
+import openai
 
 from dotenv import load_dotenv
 load_dotenv()
 
+
 # defininitions
 s3 = boto3.client('s3')
 bucket_name = 'book-scanner-lehigh'
-image_name = 'bookshelves/books7.png'
+image_name = 'bookshelves/books9.png'
 
 # create the rekognition client
 rekognition = boto3.client('rekognition', region_name='us-east-1')
-
 # creates bedrock client
 bedrock = boto3.client(service_name="bedrock-runtime", region_name="us-east-1")
+
+GOOGLE_KEY = os.getenv('GOOGLEBOOKS_API_KEY')
+AWS_BEARER_TOKEN_BEDROCK = os.getenv('AWS_BEARER_TOKEN_BEDROCK')
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 
 #--------------------------------------------#
 # AWS Rekognition - Detect Labels for Books
@@ -103,7 +107,7 @@ def get_text_from_books(cropped_books):
                 detected_texts.append(item['DetectedText'])
                 print(item['DetectedText'])
         book_texts[book_key] = detected_texts
-    print(f"TEST: {book_texts}")
+    # print(f"TEST: {book_texts}")
     return book_texts
 
 book_texts = get_text_from_books(cropped_books)
@@ -125,14 +129,103 @@ def clean_title(book_texts):
         print(f"{book_key}: {title}")
 
     return cleaned_titles
+
 clean_titles = clean_title(book_texts)
+
+
+#--------------------------------------------#
+# AWS Bedrock - Sort Book Text
+#--------------------------------------------#
+# def clean_with_bedrock(clean_titles):
+#     bedrock_cleaned = {}
+
+#     for book_key, title_text in clean_titles.items():
+#         prompt = f"""
+#         Clean the following book title text by removing gibberish.
+#         Extract the book's correct title and author.
+#         Return ONLY a JSON object with 'title' and 'author'.
+
+#         Example:
+#         Input: 'ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S'
+#         Output: {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
+
+#         Now do the same for this input: "{title_text}"
+#         """
+
+#         # call Bedrock GPT-OSS 20B model
+#         response = bedrock.invoke_model(
+#             modelId="gpt-3.3-mini",
+#             body=json.dumps({
+#                 "text": {"prompt": prompt},   # <-- wrap prompt inside an object
+#                 "max_tokens": 150
+#             }),
+#             contentType="application/json",
+#             accept="application/json"
+#         )
+
+
+#         # parse response
+#         result = json.loads(response["body"].read())
+#         output_text = result.get("text", "").strip()
+
+#         try:
+#             # attempt to parse JSON returned by the model
+#             bedrock_cleaned[book_key] = json.loads(output_text)
+#         except json.JSONDecodeError:
+#             # fallback if model output is not valid JSON
+#             bedrock_cleaned[book_key] = {"title": None, "author": None}
+
+#     return bedrock_cleaned
+
+# clean_bedrock = clean_with_bedrock(clean_titles)
+
+
+#--------------------------------------------#
+# Sort Book Text using OPENAI
+#--------------------------------------------#
+def clean_with_openai(clean_titles):
+    cleaned = {}
+
+    for book_key, title_text in clean_titles.items():
+        prompt = f"""
+        Clean the following book title text by removing gibberish.
+        Extract the book's correct title and author.
+        Return ONLY a JSON object with 'title' and 'author'.
+
+        Example:
+        Input: 'ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S'
+        Output: {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
+
+        Now do the same for this input: "{title_text}"
+        """
+
+        response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=150,
+        )
+
+        output_text = response.choices[0].message.content.strip()
+
+        try:
+            cleaned[book_key] = json.loads(output_text)
+        except json.JSONDecodeError:
+            cleaned[book_key] = {"title": None, "author": None}
+
+    return cleaned
+
+cleaned_with_openai = clean_with_openai(clean_titles)
 
 
 #--------------------------------------------#
 # Google Books API - Search for Book Info
 #--------------------------------------------#
-def query_google_books(title: str):
-    url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}"
+def query_google_books(title: str, author: str = None):
+    query = f"intitle:{title}"
+    if author:
+        query += f"+inauthor:{author}"
+    url = f"https://www.googleapis.com/books/v1/volumes?q={query}"
+    
     res = requests.get(url)
     if res.status_code == 200:
         data = res.json()
@@ -148,35 +241,35 @@ def query_google_books(title: str):
             }
     return None
 
-
-# list to hold book infos
+#--------------------------------------------#
+# Main Processing Loop (Cleaning + Querying Books)
+#--------------------------------------------#
+# list to hold book info
 book_infos = {}
 
-for book_key, title in clean_titles.items():
-    if title.strip():  # skip empty titles
-        info = query_google_books(title)
+for book_key, raw_title in clean_titles.items():
+    if raw_title.strip():
+        # pass a dict with one book
+        cleaned = clean_with_bedrock({book_key: raw_title})
+        title = cleaned[book_key]["title"]
+        author = cleaned[book_key]["author"]
+
+        info = query_google_books(title, author)
         book_infos[book_key] = info
+
         print(f"\nBook: {book_key}")
         print(f"Query Title: {title}")
+        print(f"Author: {author}")
         if info:
             print("Google Books Result:")
             print(f"Title: {info['title']}")
             print(f"Authors: {info['authors']}")
             print(f"Rating: {info.get('averageRating')}")
             print(f"Description: {info.get('description')}")
+            print(f"Thumbnail: {info.get('thumbnail')}")
         else:
             print("No results found.")
 
-#for book_key, texts in book_texts.items():
-#    if texts:
-#        title_query = texts[0]  # assume first detected line is the title
-#        book_info = query_google_books(title_query)
-#        book_infos.append((book_key, book_info))
-
-#for book_key, info in book_infos:
-#    print(f"\nBook Key: {book_key}")
-#    print(f"Book Info: {info}")
-#
 
 
 
