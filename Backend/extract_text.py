@@ -3,7 +3,7 @@ import re
 import os
 import json
 import re
-from PIL import Image, ImageDraw
+from PIL import Image
 from io import BytesIO
 import requests
 import openai
@@ -35,7 +35,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 #--------------------------------------------#
 # AWS Rekognition - Detect Labels for Books
 #--------------------------------------------#
-def detect_books(image_name):
+def detect_books(bucket_name, image_name):
     # call the rekognition client to detect text in the image
     labels_response = rekognition.detect_labels(
         Image={'S3Object': {'Bucket': bucket_name,'Name': image_name}}, MaxLabels=100)
@@ -51,12 +51,10 @@ def detect_books(image_name):
     # print(f"Found {len(books_collected)} books in the image")
     return books_collected
 
-books_collected = detect_books(image_name)
-
 #--------------------------------------------#
 # PILLOW - Crop Book Spines from Image
 #--------------------------------------------#
-def crop_books(books_collected):
+def crop_books(bucket_name, image_name, books_collected):
     # TEMP: download S3 bookself into memory
     bookshelf = s3.get_object(Bucket=bucket_name, Key=image_name)
     img = Image.open(BytesIO(bookshelf['Body'].read())) # full bookshelf image in memory rn
@@ -92,13 +90,11 @@ def crop_books(books_collected):
     
     return cropped_books
 
-cropped_books = crop_books(books_collected)
-
 
 #--------------------------------------------#
 # AWS Rekognition - Get Text from Individual Book Spines
 #--------------------------------------------#
-def get_text_from_books(cropped_books):
+def get_text_from_books(bucket_name, cropped_books):
     book_texts = {}
     for i in range(len(cropped_books)):
         book_key = f'cropped_books/book_{i}.png'
@@ -115,8 +111,6 @@ def get_text_from_books(cropped_books):
         book_texts[book_key] = detected_texts
     # print(f"TEST: {book_texts}")
     return book_texts
-
-book_texts = get_text_from_books(cropped_books)
 
 
 #--------------------------------------------#
@@ -135,56 +129,6 @@ def clean_title(book_texts):
         print(f"{book_key}: {title}")
 
     return cleaned_titles
-
-clean_titles = clean_title(book_texts)
-
-
-#--------------------------------------------#
-# AWS Bedrock - Sort Book Text
-#--------------------------------------------#
-# def clean_with_bedrock(clean_titles):
-#     bedrock_cleaned = {}
-
-#     for book_key, title_text in clean_titles.items():
-#         prompt = f"""
-#         Clean the following book title text by removing gibberish.
-#         Extract the book's correct title and author.
-#         Return ONLY a JSON object with 'title' and 'author'.
-
-#         Example:
-#         Input: 'ROWLING YEAR 3 AND THE PRISONER OF AZKABAN HARRY POTTER S'
-#         Output: {{ "title": "Harry Potter and the Prisoner of Azkaban", "author": "J.K. Rowling" }}
-
-#         Now do the same for this input: "{title_text}"
-#         """
-
-#         # call Bedrock GPT-OSS 20B model
-#         response = bedrock.invoke_model(
-#             modelId="gpt-3.3-mini",
-#             body=json.dumps({
-#                 "text": {"prompt": prompt},   # <-- wrap prompt inside an object
-#                 "max_tokens": 150
-#             }),
-#             contentType="application/json",
-#             accept="application/json"
-#         )
-
-
-#         # parse response
-#         result = json.loads(response["body"].read())
-#         output_text = result.get("text", "").strip()
-
-#         try:
-#             # attempt to parse JSON returned by the model
-#             bedrock_cleaned[book_key] = json.loads(output_text)
-#         except json.JSONDecodeError:
-#             # fallback if model output is not valid JSON
-#             bedrock_cleaned[book_key] = {"title": None, "author": None}
-
-#     return bedrock_cleaned
-
-# clean_bedrock = clean_with_bedrock(clean_titles)
-
 
 #--------------------------------------------#
 # Sort Book Text using OPENAI
@@ -221,8 +165,6 @@ def clean_with_openai(clean_titles):
 
     return cleaned
 
-cleaned_with_openai = clean_with_openai(clean_titles)
-
 
 #--------------------------------------------#
 # Google Books API - Search for Book Info
@@ -248,57 +190,75 @@ def query_google_books(title: str, author: str = None):
             }
     return None
 
-#--------------------------------------------#
-# Main Processing Loop (Cleaning + Querying Books)
-#--------------------------------------------#
-# list to hold book infos
-book_infos = {}
+# #--------------------------------------------#
+# # Main Processing Loop (Cleaning + Querying Books)
+# #--------------------------------------------#
+# # list to hold book infos
+# book_infos = {}
 
-for book_key, title in clean_titles.items():
-    if title.strip():  # skip empty titles
-        info = query_google_books(title)
-        book_infos[book_key] = info
-        print(f"\nBook: {book_key}")
-        print(f"Query Title: {title}")
-        if info:
-            print("Google Books Result:")
-            print(f"Title: {info['title']}")
-            print(f"Authors: {info['authors']}")
-            print(f"Rating: {info.get('averageRating')}")
-            print(f"Description: {info.get('description')}")
-        else:
-            print("No results found.")
+# for book_key, title in clean_titles.items():
+#     if title.strip():  # skip empty titles
+#         info = query_google_books(title)
+#         book_infos[book_key] = info
+#         print(f"\nBook: {book_key}")
+#         print(f"Query Title: {title}")
+#         if info:
+#             print("Google Books Result:")
+#             print(f"Title: {info['title']}")
+#             print(f"Authors: {info['authors']}")
+#             print(f"Rating: {info.get('averageRating')}")
+#             print(f"Description: {info.get('description')}")
+#         else:
+#             print("No results found.")
 
 
 #--------------------------------------------#
 # Lambda Handler for Iniital Image Upload
 #--------------------------------------------#
 def lambda_handler(event, context):
-    bucket = event['Records'][0]['s3']['bucket']['name']
-    image_key = event['Records'][0]['s3']['object']['key']
+    print("Event:", json.dumps(event))
+    all_books = []
 
-    # Detect and crop books
-    books_collected = detect_books(bucket, image_key)
-    cropped_books = crop_books(bucket, image_key, books_collected)
+    for record in event['Records']:
+        bucket_name = record['s3']['bucket']['name']
+        image_name = record['s3']['object']['key']
 
-    # Extract text
-    book_texts = get_text_from_books(bucket, cropped_books)
-    clean_titles_dict = clean_title(book_texts)
+        # detect & process books
+        books_collected = detect_books(bucket_name, image_name)
+        cropped_books = crop_books(bucket_name, image_name, books_collected)
+        book_texts = get_text_from_books(bucket_name, cropped_books)
+        clean_titles = clean_title(book_texts)
 
-    # Clean with OpenAI
-    # cleaned_books = clean_with_openai(clean_titles_dict)
+        for key, title in clean_titles.items():
+            if title.strip():
+                info = query_google_books(title)
 
-    # Query Google Books
-    book_infos = {}
-    for book_key, book_data in clean_titles_dict.items():
-        title = book_data["title"]
-        author = book_data["author"]
-        if title:
-            book_infos[book_key] = query_google_books(title, author)
-        else:
-            book_infos[book_key] = None
+                # gracefully extract info
+                book_entry = {
+                    "id": key,
+                    "title": title,
+                    "authors": info.get("authors", []),
+                    "rating": info.get("averageRating", None),
+                    "description": info.get("description", "No description available"),
+                    "thumbnail": info.get("thumbnail", None)
+                }
 
-    return {
-        'statusCode': 200,
-        'body': json.dumps(book_infos)
+                all_books.append(book_entry)
+
+    # final JSON output
+    response = {
+        "message": "Bookshelf processed successfully!",
+        "books": all_books
     }
+
+    print("Response:", json.dumps(response, indent=2))
+    return {
+        "statusCode": 200,
+        "body": json.dumps(response)
+    }
+
+if __name__ == "__main__":
+    import json
+    with open("event.json") as f:
+        event = json.load(f)
+    print(lambda_handler(event, None))
