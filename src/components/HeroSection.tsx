@@ -1,7 +1,11 @@
 import React from 'react';
 import ImageUpload from './ImageUpload';
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  children?: React.ReactNode;
+}
+
+export default function HeroSection({ children }: HeroSectionProps) {
   return (
     <section className="bg-transparent text-gray-200 w-full rounded-2xl">
       <div className="container mx-auto flex flex-col items-center justify-center py-15 px-4 text-center">
@@ -21,7 +25,7 @@ export default function HeroSection() {
         w-full flex justify-center mt-6 relative rounded-full
         rounded-base px-6 py-2 text-white
         ">
-          <ImageUpload />
+          {children}
         </div>
 
       </div>

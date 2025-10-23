@@ -1,12 +1,21 @@
 'use client';
-
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import HeroSection from "../components/HeroSection";
 import ResultBox from "../components/result";
+import ImageUpload from "../components/ImageUpload";
+
+interface BookData {
+  title?: string;
+  rating?: number;
+  author?: string;
+  description?: string;
+  thumbnail?: string;
+}
 
 export default function Home() {
   const [offsetY, setOffsetY] = useState(0);
+  const [books, setBooks] = useState<BookData[]>([]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,26 +42,12 @@ export default function Home() {
       {/* Page content */}
       <div className="relative z-10 grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 text-white">
         <main className="flex flex-col gap-[32px] row-start-2 items-center text-center">
-          <HeroSection />
+          <HeroSection>
+            <ImageUpload onUploadSuccess={setBooks} />
+          </HeroSection>
 
           <ResultBox
-            books={[
-              {
-                title: "Dune",
-                author: "Frank Herbert",
-                rating: 4.8,
-                description: "Epic science fiction novel.",
-                thumbnail: "/covers/dune.jpg",
-              },
-              {
-                title: "1984",
-                author: "George Orwell",
-                rating: 4.6,
-                description: "Dystopian classic.",
-                thumbnail: "/covers/1984.jpg",
-              },
-
-            ]}
+            books={books}
           />
 
           {/* Footer */}

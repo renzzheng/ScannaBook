@@ -38,7 +38,7 @@ export default function BookCard({
     {rating && (
       <p className="text-yellow-400 text-sm mb-1">⭐ {rating.toFixed(1)}</p>
     )}
-    <p className="text-sm text-gray-300">{description || "No description available."}</p>
+    <p className="text-sm text-gray-300 max-h-20 overflow-scroll">{description || "No description available."}</p>
   </div>
 </div>
   );

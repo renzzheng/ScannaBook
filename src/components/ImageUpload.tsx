@@ -66,8 +66,7 @@ export default function ImageUpload({ className, onUploadSuccess }: ImageUploadP
       const data = await response.json();
       console.log('Upload response:', data);
 
-      // *** FIX APPLIED HERE ***
-      // We check if onUploadSuccess is a function before calling it.
+      // APPLY FIX HERE 
       if (onUploadSuccess) {
         onUploadSuccess(data.books || []);
       }
