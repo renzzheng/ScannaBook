@@ -1,6 +1,7 @@
 
 'use client';
 import React, { useRef, useState, useEffect } from "react";
+import myData from "../../Backend/bookshelf_response.json";
 import { Camera, RefreshCw } from "lucide-react"; // Added RefreshCw for loading spinner
 
 // Define the book data structure so this component knows what to expect
@@ -16,9 +17,10 @@ interface ImageUploadProps {
   className?: string;
   // This is the key change: a function passed from the parent
   onUploadSuccess: (books: BookData[]) => void;
+  isLive?: boolean;
 }
 
-export default function ImageUpload({ className, onUploadSuccess }: ImageUploadProps) {
+export default function ImageUpload({ className, onUploadSuccess, isLive=false }: ImageUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // Add loading and error states for better UX
@@ -51,19 +53,21 @@ export default function ImageUpload({ className, onUploadSuccess }: ImageUploadP
     setError(null);
     const formData = new FormData();
     formData.append("file", file);
-
     try {
-      const response = await fetch('http://127.0.0.1:5000/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const data = myData;
+      if (isLive){
+        const response = await fetch('http://127.0.0.1:5000/upload', {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (!response.ok) {
-        // Handle server errors (like 500, 404 etc.)
-        throw new Error(`Upload failed with status: ${response.status}`);
+        if (!response.ok) {
+          // Handle server errors (like 500, 404 etc.)
+          throw new Error(`Upload failed with status: ${response.status}`);
+        }
+
+        const data = await response.json();
       }
-
-      const data = await response.json();
       console.log('Upload response:', data);
 
       // APPLY FIX HERE 
