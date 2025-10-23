@@ -44,10 +44,10 @@ export default function ResultBox({ books }: ResultBoxProps) {
   const SortButton = ({ method, children }: { method: SortMethod, children: React.ReactNode }) => (
     <button
       onClick={() => setSortMethod(method)} // Use setSortMethod directly
-      className={`bg-transparent px-4 py-1 text-sm font-medium rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-500 ${
+      className={`bg-transparent px-4 py-1 text-black text-sm font-medium rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-500 ${
         sortMethod === method // Use sortMethod directly
-          ? 'bg-white/25 text-white' // Active button colors
-          : 'text-gray-300 hover:bg-white/10 hover:text-white' // Inactive button colors
+          ? 'bg-white/25 text-black' // Active button colors
+          : 'text-gray-300 hover:bg-white/10 hover:text-black' // Inactive button colors
       }`}
     >
       {children}
