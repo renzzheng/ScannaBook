@@ -1,5 +1,7 @@
 <img width="2822" height="284" alt="image" src="https://github.com/user-attachments/assets/177f75cf-aef0-4a7b-8e6a-55b711ad3d4b" />
-
+<p align="center">
+  <img width="756" height="491" alt="image" src="https://github.com/user-attachments/assets/890d9a09-b070-4f7d-b176-81773864df2b" />
+</p>
 ## Inspiration
 Inspired by how cumbersome it can be to sift through thrift store books, or to even catalog your own personal bookshelf, we set out to create `ScannaBook` to aid in this venture.
 
