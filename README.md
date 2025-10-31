@@ -12,7 +12,7 @@ Inspired by how cumbersome it can be to sift through thrift store books, or to e
 ## How we built it
 For our frontend, we used `Typescript/React` to create the components and the overall layout of our webpage. For the backend, we used `AWS services` and `Pillow` to extract the text, `Google books API` to give us information about each book, `Gemini` to format output to our likings, and then connected all of this to the frontend  using `Flask` to create our fully working application.
 <p align="center">
-<img width="518" height="623" alt="image" src="https://github.com/user-attachments/assets/eb2d7b17-9bcc-4c83-af63-33914ba30264" />
+  <img width="440" height="776" alt="image" src="https://github.com/user-attachments/assets/994e2ac9-cb53-4bf6-9830-ff1f03283760" />
 </p>
 
 ## Challenges we ran into
