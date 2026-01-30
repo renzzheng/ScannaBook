@@ -18,7 +18,7 @@ For our frontend, we used `Typescript/React` to create the components and the ov
 ## Challenges we ran into
 Overcame challenges while learning the `AWS` console, successfully incorporating `Rekognition` and `S3`, creating `IAM` profiles, and integrating these services into our project.
 
-We explored ways to clean up book spine texts for the `Google Books API` query, cropping individual books using `Pillow` to prevent data bleed and remove noise from the text.
+We explored ways to clean up book spine texts for the `Google Books API` query, cropping individual books using `Pillow` to prevent data bleed and to remove noise from the text.
 
 To efficiently separate titles and authors, we leveraged `Gemini AI` to structure the data into a clean JSON format, as opposed to relying solely on using regex to clean the texts, making it easier to send to the frontend.
 
