@@ -23,7 +23,7 @@ We explored ways to clean up book spine texts for the `Google Books API` query, 
 To efficiently separate titles and authors, we leveraged `Gemini AI` to structure the data into a clean JSON format, as opposed to relying solely on using regex to clean the texts, making it easier to send to the frontend.
 
 ## Accomplishments that we're proud of
-We are proud of creating a full-stack webpage that incorporates both frontend and backend functionality. The frontend being the decorative UI and layout of our webpage and the backend being the functionalities that make the frontend components work. This gave us a better idea on what it's like to work on a full-stack development project. We are also proud of our ability to foster teamwork and collaboration under time constraints, efficiently delegating tasks and gaining experience that will benefit future projects.
+We are proud of creating a full-stack webpage that incorporates both frontend and backend functionality. This gave us a better idea on what it's like to work on a full-stack development project. We are also proud of our ability to foster teamwork and collaboration under time constraints, efficiently delegating tasks and gaining experience that will benefit future projects.
 
 ## What we learned
 - Frontend design for transparent, glass-like UI objects.
