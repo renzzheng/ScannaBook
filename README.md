@@ -16,8 +16,11 @@ For our frontend, we used `Typescript/React` to create the components and the ov
 </p>
 
 ## Challenges we ran into
-Overcame challenges while learning the AWS Services console, successfully incorporating Rekognition and S3, creating IAM profiles, and integrating these services into our project.
-We explored ways to clean up book spine texts for the Google Books API query, cropping individual books to prevent data bleed and removing noise from the text. To efficiently separate titles and authors, we leveraged Gemini AI to structure the data into a clean JSON format, as opposed to simply using regex to clean the texts, making it easier to send to the frontend.
+Overcame challenges while learning the `AWS` console, successfully incorporating `Rekognition` and `S3`, creating `IAM` profiles, and integrating these services into our project.
+
+We explored ways to clean up book spine texts for the `Google Books API` query, cropping individual books using `Pillow` to prevent data bleed and remove noise from the text.
+
+To efficiently separate titles and authors, we leveraged `Gemini AI` to structure the data into a clean JSON format, as opposed to relying solely on using regex to clean the texts, making it easier to send to the frontend.
 
 ## Accomplishments that we're proud of
 We are proud of creating a full-stack webpage that incorporates both frontend and backend functionality. The frontend being the decorative UI and layout of our webpage and the backend being the functionalities that make the frontend components work. This gave us a better idea on what it's like to work on a full-stack development project. We are also proud of our ability to foster teamwork and collaboration under time constraints, efficiently delegating tasks and gaining experience that will benefit future projects.
