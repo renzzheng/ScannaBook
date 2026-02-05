@@ -48,8 +48,13 @@ yarn install
 Backend
 - Install Python dependencies for OCR, API calls, and cloud integration:
 ```bash
+pip install -r requirements.txt
+```
+OR
+```bash
 pip install boto3 google-auth google-auth-oauthlib google-api-python-client pillow requests python-dotenv
 ```
+
 ---
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
