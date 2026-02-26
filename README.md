@@ -22,16 +22,6 @@ We explored ways to clean up book spine texts for the `Google Books API` query, 
 
 To efficiently separate titles and authors, we leveraged `Gemini AI` to structure the data into a clean JSON format, as opposed to relying solely on using regex to clean the texts, making it easier to send to the frontend.
 
-## Accomplishments that we're proud of
-We are proud of creating a full-stack webpage that incorporates both frontend and backend functionality. This gave us a better idea on what it's like to work on a full-stack development project. We are also proud of our ability to foster teamwork and collaboration under time constraints, efficiently delegating tasks and gaining experience that will benefit future projects.
-
-## What we learned
-- Frontend design for transparent, glass-like UI objects.
-- Integrating and referencing APIs into our program.
-- Implementing AWS services into our backend.
-- Processing and cleaning images with Pillow and formatting data with Gemini.
-- Connecting backend services to the frontend using Flask.
-
 ## What's next for ScannaBook
 ScannaBook really excited us when we were in the brainstorming phase of our project as we had many ambitious ideas for UI elements, novel functionalities, and how they would interact with one another in fun, creative, and user-friendly ways. One of our ideas was to add a rotating carousel of book spine images extracted from Rekognition. The book spine images could also be paired with a cover image to create a semi-third dimensional representation of books on our site.
 
